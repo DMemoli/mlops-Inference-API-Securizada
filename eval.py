@@ -20,7 +20,7 @@ from main_3 import app
 
 
 client = TestClient(app)
-MODELO_A_EVALUAR = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+MODELO_A_EVALUAR = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 PAUSA_SEGUNDOS = int(os.getenv("EVAL_PAUSA_SEGUNDOS", "30"))
 MAX_INTENTOS = 3
 ULTIMO_ENVIO = None
