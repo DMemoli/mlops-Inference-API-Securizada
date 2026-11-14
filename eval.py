@@ -3,7 +3,7 @@ import sys
 import os
 import mlflow
 from fastapi.testclient import TestClient
-from main import app  # Importamos nuestra API completa
+from main_3 import app  # Importamos nuestra API completa
 
 # Importaciones para Ragas
 from datasets import Dataset
