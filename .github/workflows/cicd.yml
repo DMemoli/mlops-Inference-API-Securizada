@@ -24,7 +24,7 @@ jobs:
         pip install mlflow httpx # httpx es necesario para TestClient
 
     
-      name: Diagnosticar acceso a Gemini
+    - name: Diagnosticar acceso a Gemini
       env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
