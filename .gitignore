@@ -10,4 +10,6 @@ venv/
 __pycache__/
 *.pyc
 
+#prueba
+tests\test_pipeline.py
 
