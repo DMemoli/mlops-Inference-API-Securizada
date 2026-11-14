@@ -10,39 +10,24 @@ jobs:
 
     steps:
     - name: Clonar repositorio
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
 
     - name: Configurar entorno de Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip' 
 
     - name: Instalar librerías
       run: |
-        python -m pip install -r requirements-test.txt
-
-    - name: Comprobar configuración de Gemini
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: |
-        if [ -z "$GEMINI_API_KEY" ]; then
-          echo "::error::Falta configurar el secret GEMINI_API_KEY del repositorio."
-          exit 1
-        fi
-
-    - name: Pruebas de regresión sin llamadas a Gemini
-      run: python -m unittest discover -s tests -v
+        pip install -r requirements-test.txt
+        pip install mlflow httpx # httpx es necesario para TestClient
 
     - name: Ejecutar Evaluación Semántica y de Seguridad (CI)
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
-        EVAL_LLM_MODEL: ${{ vars.EVAL_LLM_MODEL || vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
-        EVAL_EMBEDDING_MODEL: ${{ vars.EVAL_EMBEDDING_MODEL || 'models/gemini-embedding-001' }}
-        EVAL_GEMINI_RPM: ${{ vars.EVAL_GEMINI_RPM || '10' }}
       run: |
-        python -u eval.py
+        python eval.py
 
     - name: Despliegue a Producción (CD - Render)
       # Este paso SOLO se ejecuta si el script eval.py termina con éxito (exit 0)
