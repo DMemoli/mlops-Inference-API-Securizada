@@ -3,6 +3,7 @@ import sys
 import os
 import math
 import time
+from copy import deepcopy
 from statistics import mean
 import mlflow
 from fastapi.testclient import TestClient
@@ -16,6 +17,7 @@ from ragas.run_config import RunConfig
 from ragas.llms import LangchainLLMWrapper
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.rate_limiters import InMemoryRateLimiter
+from ragas.run_config import RunConfig
 
 # Instanciamos un cliente HTTP de prueba
 client = TestClient(app)
@@ -106,6 +108,13 @@ def evaluar_relevancia():
             print(f"⚠️ Error HTTP {response.status_code} en la inferencia para: {item['prompt']}")
             return 0.0 # Castigamos la métrica si la API falla
 
+    if mlflow.active_run():
+        mlflow.log_dict({"question": preguntas, "answer": respuestas}, "respuestas_funcionales.json")
+    return evaluar_respuestas(preguntas, respuestas)
+
+
+def evaluar_respuestas(preguntas, respuestas):
+    """Calcula la relevancia de las respuestas recogidas de la API."""
     # 1. Ragas requiere un formato específico de Dataset (HuggingFace)
     data_dict = {
         "question": preguntas,
@@ -121,24 +130,48 @@ def evaluar_relevancia():
     gemini_llm = ChatGoogleGenerativeAI(
         model=MODELO_EVALUADOR,
         rate_limiter=InMemoryRateLimiter(requests_per_second=EVAL_GEMINI_RPM / 60),
+        response_mime_type="application/json",
+        response_schema={
+            "type": "object",
+            "properties": {"question": {"type": "string"}, "noncommittal": {"type": "integer"}},
+            "required": ["question", "noncommittal"],
+        },
     )
-    gemini_embeddings = GoogleGenerativeAIEmbeddings(model=MODELO_EMBEDDINGS)
+    gemini_embeddings = GoogleGenerativeAIEmbeddings(
+        model=MODELO_EMBEDDINGS, task_type="SEMANTIC_SIMILARITY"
+    )
     # Gemini admite un candidato por llamada. Conservamos las tres muestras
     # de Ragas generándolas por separado, sin enviar candidate_count=3.
     evaluador = LangchainLLMWrapper(gemini_llm, bypass_n=True, bypass_temperature=True)
+    metrica_relevancia = deepcopy(answer_relevancy)
+    # El benchmark está en español. Comparar preguntas reconstruidas en inglés
+    # con las originales añade una diferencia de idioma a la similitud semántica.
+    metrica_relevancia.question_generation.instruction += (
+        "\nGenerate the question in Spanish, the language of this evaluation dataset. "
+        "Keep the required JSON schema and the original noncommittal criteria."
+    )
 
     # 3. Ejecutar la evaluación matemática de Ragas
     resultado = evaluate(
+        run_config=RunConfig(
+        max_workers=1,
+        max_retries=3,
+        max_wait=60,
+        timeout=180
+        ),
         dataset=dataset,
-        metrics=[answer_relevancy],
+        metrics=[metrica_relevancia],
         llm=evaluador,
         embeddings=gemini_embeddings,
         raise_exceptions=True,
         run_config=RunConfig(max_workers=1),
     )
     
-    # Extraemos el valor numérico
-    return promediar_relevancia(resultado["answer_relevancy"])
+    
+    puntuaciones = resultado["answer_relevancy"]
+    for pregunta, puntuacion in zip(preguntas, puntuaciones):
+        print(f"Relevancia {puntuacion:.3f}: {pregunta}", flush=True)
+    return promediar_relevancia(puntuaciones)
 
 
 if __name__ == "__main__":

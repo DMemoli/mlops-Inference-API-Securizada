@@ -1,6 +1,6 @@
 -r requirements.txt
 mlflow
 httpx
-ragas
+ragas==0.4.4
 datasets
 langchain-google-genai

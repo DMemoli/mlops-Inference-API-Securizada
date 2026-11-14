@@ -121,7 +121,9 @@ class EvaluacionTests(unittest.TestCase):
             self.assertAlmostEqual(evaluacion.evaluar_relevancia(), 0.9)
             self.assertEqual(llm.call_args.kwargs["model"], evaluacion.MODELO_EVALUADOR)
             self.assertIsNotNone(llm.call_args.kwargs["rate_limiter"])
-            embeddings.assert_called_once_with(model=evaluacion.MODELO_EMBEDDINGS)
+            embeddings.assert_called_once_with(
+                model=evaluacion.MODELO_EMBEDDINGS, task_type="SEMANTIC_SIMILARITY"
+            )
             self.assertTrue(evaluate.call_args.kwargs["raise_exceptions"])
             self.assertEqual(evaluate.call_args.kwargs["dataset"]["answer"], ["Respuesta", "Respuesta"])
 

@@ -13,3 +13,10 @@ __pycache__/
 #prueba
 tests\test_pipeline.py
 
+# Resultados locales de MLflow
+mlruns/
+mlartifacts/
+mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+
