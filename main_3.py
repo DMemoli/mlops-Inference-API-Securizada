@@ -100,9 +100,8 @@ def llm_judge(prompt_usuario: str, model:str) -> bool:
             headers={"Retry-After": "60"} if getattr(exc, "code", None) == 429 else None,
         ) from exc
 
-    #decision = (respuesta.text or "").strip().upper()
-    #prueba roja
-    decision = "FALSE"
+    decision = (respuesta.text or "").strip().upper()
+
     if decision not in {"TRUE", "FALSE"}:
         logger.error("El juez Gemini devolvió una decisión inválida: modelo=%s", model)
         raise HTTPException(status_code=503, detail="El juez de seguridad no está disponible.")
