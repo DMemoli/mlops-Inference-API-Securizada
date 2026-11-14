@@ -85,7 +85,7 @@ def evaluar_relevancia():
         max_wait=60,
         timeout=180
         ),
-        raise_exceptions=True
+        raise_exceptions=True,
         dataset=dataset,
         metrics=[answer_relevancy],
         llm=gemini_llm,
