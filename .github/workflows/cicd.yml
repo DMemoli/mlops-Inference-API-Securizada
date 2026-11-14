@@ -1,0 +1,36 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  evaluacion_y_despliegue:
+    runs-on: ubuntu-latest 
+
+    steps:
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar entorno de Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip' 
+
+    - name: Instalar librerías
+      run: |
+        pip install -r requirements-test.txt
+        pip install mlflow httpx # httpx es necesario para TestClient
+
+    - name: Ejecutar Evaluación Semántica y de Seguridad (CI)
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        python eval.py
+
+    - name: Despliegue a Producción (CD - Render)
+      # Este paso SOLO se ejecuta si el script eval.py termina con éxito (exit 0)
+      run: |
+        echo "🚀 Métricas superadas. Disparando despliegue en Render..."
+        curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

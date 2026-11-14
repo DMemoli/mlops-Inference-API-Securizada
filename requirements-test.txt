@@ -1,0 +1,6 @@
+-r requirements.txt
+mlflow
+httpx
+ragas
+datasets
+langchain-google-genai
