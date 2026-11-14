@@ -13,7 +13,7 @@ from datasets import Dataset
 from fastapi.testclient import TestClient
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from ragas import evaluate
-from ragas.metrics import answer_relevancy
+from ragas.metrics import AnswerRelevancy
 from ragas.run_config import RunConfig
 
 from main_3 import app
@@ -158,7 +158,7 @@ def evaluar_relevancia():
     gemini_embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     resultado = evaluate(
         dataset=dataset,
-        metrics=[answer_relevancy],
+        metrics=[AnswerRelevancy(strictness=1)],
         llm=gemini_llm,
         embeddings=gemini_embeddings,
         run_config=RunConfig(
