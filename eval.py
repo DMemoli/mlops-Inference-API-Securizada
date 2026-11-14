@@ -22,7 +22,7 @@ from main_3 import app
 client = TestClient(app)
 MODELO_A_EVALUAR = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 PAUSA_SEGUNDOS = int(os.getenv("EVAL_PAUSA_SEGUNDOS", "30"))
-MAX_INTENTOS = 3
+MAX_INTENTOS = 4
 ULTIMO_ENVIO = None
 
 
@@ -48,31 +48,43 @@ def solicitar_inferencia(prompt: str):
         )
 
         tiene_retry = respuesta.headers.get("retry-after")
-        if respuesta.status_code in (502, 503) and tiene_retry:
+        
+        # Reintentar ante errores temporales de Gemini
+        if respuesta.status_code in (429, 502, 503, 504):
+
+            # Si agotamos todos los intentos, bloquear despliegue
             if intento == MAX_INTENTOS:
                 raise RuntimeError(
-                    f"Gemini sigue limitado tras {MAX_INTENTOS} intentos. "
-                    f"HTTP {respuesta.status_code}. "
+                    f"Gemini no disponible. HTTP {respuesta.status_code}. "
+                    f"Se agotaron {MAX_INTENTOS - 1} reintentos. "
                     "Evaluacion inconclusa: despliegue bloqueado."
                 )
+
+            # Respetar Retry-After cuando este disponible
+            retry_after = respuesta.headers.get("Retry-After")
+
             try:
-                espera_recomendada = float(tiene_retry)
+                espera_recomendada = (
+                    float(retry_after) if retry_after else 0
+                )
             except ValueError:
-                espera_recomendada = 60
-            espera = max(60, espera_recomendada, 60 * (2 ** (intento - 1)))
+                espera_recomendada = 0
+
+            # Esperar al menos 60 segundos
+            espera = max(60, espera_recomendada)
+
             print(
-                f"Gemini limito el consumo. Reintento {intento}/{MAX_INTENTOS - 1} "
-                f"tras {espera:.0f}s.", flush=True
+                f"HTTP {respuesta.status_code}. "
+                f"Reintento {intento}/{MAX_INTENTOS - 1} "
+                f"en {espera:.0f} segundos.",
+                flush=True
             )
+
             time.sleep(espera)
             continue
 
-        if respuesta.status_code in (502, 503):
-            raise RuntimeError(
-                f"La API no pudo atender la consulta: HTTP {respuesta.status_code}. "
-                "Evaluacion inconclusa: no se despliega."
-            )
         return respuesta
+
 
     raise RuntimeError("No se pudo completar la solicitud de evaluacion.")
 
