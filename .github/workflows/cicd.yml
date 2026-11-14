@@ -23,6 +23,36 @@ jobs:
         pip install -r requirements-test.txt
         pip install mlflow httpx # httpx es necesario para TestClient
 
+    
+      name: Diagnosticar acceso a Gemini
+      env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+          python - <<'PY'
+          import os
+          from google import genai
+          from google.genai.errors import ClientError
+
+          key = os.getenv("GEMINI_API_KEY")
+          if not key:
+              raise SystemExit("Falta GEMINI_API_KEY")
+
+          client = genai.Client(api_key=key)
+
+          try:
+              respuesta = client.models.generate_content(
+                  model="gemini-3.5-flash-lite",
+                  contents="Responde solamente OK"
+              )
+              print("Gemini funciona:", respuesta.text)
+
+          except ClientError as e:
+              print("Código HTTP:", e.code)
+              print("Detalle del error:", e.message)
+              raise SystemExit(1)
+          PY
+  
+
     - name: Ejecutar Evaluación Semántica y de Seguridad (CI)
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
