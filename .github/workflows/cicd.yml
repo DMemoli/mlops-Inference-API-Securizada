@@ -6,7 +6,7 @@ on:
 
 jobs:
   evaluacion_y_despliegue:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Clonar repositorio
